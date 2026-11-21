@@ -10,18 +10,19 @@
 
 ## 想做：
 
-- [1795241983] 用 GitHub Actions 准备一个能通过 SSH 登录的 Arch Linux 环境，跑测试，更新说明，合并 PR 并关闭 Issue #1。
+- [1795242275] 远端测试通过后合并 PR，确认 Issue #1 已关闭。
 
 ## 做完：
 
 - [1795241983] 当前目录里没有目标仓库。从 GitHub 同步 `C0verSnow/tmate`，切到 `feature/arch-linux-tmate`。
 - [1795242056] 在 GitHub 比较了 `mxschmitt/action-tmate`、上游的 `tmate-ssh-server` 和 WarpBuild 的实现。保留指定 Action，用可达的 WarpBuild 中继，并核对了主机指纹。
 - [1795242214] 按最新版本要求改用 `mxschmitt/action-tmate@v3`。GitHub 的最新正式版是 `v3.24`，两个标签指向同一提交。
+- [1795242275] 新增 Arch Linux SSH 工作流和 README 使用说明，YAML 和 Bash 语法检查已通过。[PR #2](https://github.com/C0verSnow/tmate/pull/2) 已创建。
 
 ## 没做：
 
-- [1795242136] 按仓库约定不做本地编译，运行结果以 GitHub Actions 为准。
+- [1795242275] 按仓库约定不做本地编译，运行结果以 GitHub Actions 为准。
 
 ## 在做：
 
-- [1795242136] 添加工作流和使用说明，准备远端验证。
+- [1795242275] GitHub Actions 已装好 Arch 软件包，正在验证 tmate 中继、SSH 地址和公钥限制。
