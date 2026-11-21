@@ -45,29 +45,49 @@ jobs:
         with:
           install-dependencies: false
           limit-access-to-actor: true
-          detached: ${{ env.VERIFY_ONLY }}
+          detached: true
+          connect-timeout-seconds: 1800
           tmate-server-host: ${{ env.TMATE_HOST }}
           tmate-server-port: 22
           tmate-server-rsa-fingerprint: SHA256:xx8GG3NVyIlZRFvm+a0N8U3NVXCIZXMsOnes0ERRz1k
           tmate-server-ed25519-fingerprint: ${{ env.TMATE_ED25519_FINGERPRINT }}
 
-      - name: Verify SSH session and access control
-        if: env.VERIFY_ONLY == 'true'
+      - name: Verify SSH and show connection instructions
         env:
           SSH_ADDRESS: ${{ steps.tmate.outputs.ssh-address }}
         run: |
-          trap 'touch /continue' EXIT
+          known_hosts=$(mktemp)
+          trap '
+            status=$?
+            rm -f "$known_hosts"
+            if (( status != 0 )) || [[ "$VERIFY_ONLY" == true ]]; then
+              touch /continue
+            fi
+          ' EXIT
+
           [[ "$SSH_ADDRESS" == ?*@"$TMATE_HOST" ]]
           tmate -S /tmp/tmate.sock has-session
-          test -s "$HOME/.ssh/authorized_keys"
-
-          known_hosts=$(mktemp)
           ssh-keyscan -T 10 -t ed25519 "$TMATE_HOST" > "$known_hosts"
-          test "$(ssh-keygen -lf "$known_hosts" | awk 'NR == 1 {print $2}')" = "$TMATE_ED25519_FINGERPRINT"
+          if [[ $(ssh-keygen -lf "$known_hosts" | awk '{print $2}' | sort -u) != "$TMATE_ED25519_FINGERPRINT" ]]; then
+            echo 'SSH relay host key fingerprint does not match.' >&2
+            exit 1
+          fi
           if output=$(ssh -F /dev/null -o UserKnownHostsFile="$known_hosts" \
               -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -o BatchMode=yes \
-              -o PreferredAuthentications=none -T "$SSH_ADDRESS" 2>&1); then
+              -o HostKeyAlgorithms=ssh-ed25519 -o PreferredAuthentications=none \
+              -T "$SSH_ADDRESS" 2>&1); then
             echo 'SSH unexpectedly accepted a connection without a private key.' >&2
             exit 1
           fi
-          grep -Fq 'Permission denied (publickey' <<< "$output"
+          if [[ "$output" != *'Permission denied (publickey'* ]]; then
+            printf '%s\n' "$output" >&2
+            exit 1
+          fi
+
+          printf 'Authorized SSH key fingerprints for %s:\n' "$GITHUB_ACTOR"
+          ssh-keygen -lf "$HOME/.ssh/authorized_keys" | awk '{print $2, $NF}'
+          printf 'SSH relay fingerprint: %s\n' "$TMATE_ED25519_FINGERPRINT"
+          printf 'SSH checks passed at %s UTC.\n' "$(date -u '+%Y-%m-%d %H:%M:%S')"
+          if [[ "$VERIFY_ONLY" != true ]]; then
+            printf '::notice title=SSH connection::ssh -o IdentitiesOnly=yes -o HostKeyAlgorithms=ssh-ed25519 -i "<private-key-path>" %s\n' "$SSH_ADDRESS"
+          fi
