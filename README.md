@@ -14,7 +14,7 @@ GitHub 托管的 Ubuntu runner 会启动一个 Arch Linux 容器。SSH 会话进
    ssh -o IdentitiesOnly=yes -o HostKeyAlgorithms=ssh-ed25519 -i "$HOME/.ssh/id_ed25519" SESSION@gha.warp.build
    ```
 
-5. 首次连接时，核对 WarpBuild 的 Ed25519 主机指纹 `SHA256:+aWjAPAeKuvuZSPG92Q8yaEkd5eb2T+uF9Jp+8Sb/+A`。吻合后输入 `yes` 并按回车。登录后运行 `grep '^ID=arch$' /etc/os-release`，应输出 `ID=arch`。
+5. 首次连接时，核对 WarpBuild 的 Ed25519 主机指纹 `SHA256:+aWjAPAeKuvuZSPG92Q8yaEkd5eb2T+uF9Jp+8Sb/+A`。吻合后输入 `yes` 并按回车。如果 tmate 提示 `Press <q> or <ctrl-c> to continue`，按 `q` 进入 shell。运行 `grep '^ID=arch$' /etc/os-release`，应输出 `ID=arch`。
 6. 调试结束后在会话中运行 `touch /continue`，或在 GitHub 取消本次运行。作业最多运行 30 分钟，从安装软件时开始计时。
 
 ## 连接失败时
