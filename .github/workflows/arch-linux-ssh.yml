@@ -1,0 +1,73 @@
+name: Arch Linux SSH
+
+on:
+  workflow_dispatch:
+    inputs:
+      verify_only:
+        description: 只运行自动验证
+        type: boolean
+        default: false
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  arch-linux:
+    name: Arch Linux
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    container: archlinux:base
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERIFY_ONLY: ${{ github.event_name == 'pull_request' || inputs.verify_only }}
+      TMATE_HOST: gha.warp.build
+      TMATE_ED25519_FINGERPRINT: SHA256:+aWjAPAeKuvuZSPG92Q8yaEkd5eb2T+uF9Jp+8Sb/+A
+
+    steps:
+      - name: Install Arch Linux packages
+        run: |
+          . /etc/os-release
+          test "$ID" = arch
+          pacman -Syu --noconfirm --needed git openssh tmate
+
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Debugging with tmate
+        id: tmate
+        uses: mxschmitt/action-tmate@v3.24
+        with:
+          install-dependencies: false
+          limit-access-to-actor: true
+          detached: ${{ env.VERIFY_ONLY }}
+          tmate-server-host: ${{ env.TMATE_HOST }}
+          tmate-server-port: 22
+          tmate-server-rsa-fingerprint: SHA256:xx8GG3NVyIlZRFvm+a0N8U3NVXCIZXMsOnes0ERRz1k
+          tmate-server-ed25519-fingerprint: ${{ env.TMATE_ED25519_FINGERPRINT }}
+
+      - name: Verify SSH session and access control
+        if: env.VERIFY_ONLY == 'true'
+        env:
+          SSH_ADDRESS: ${{ steps.tmate.outputs.ssh-address }}
+        run: |
+          trap 'touch /continue' EXIT
+          [[ "$SSH_ADDRESS" == ?*@"$TMATE_HOST" ]]
+          tmate -S /tmp/tmate.sock has-session
+          test -s "$HOME/.ssh/authorized_keys"
+
+          known_hosts=$(mktemp)
+          ssh-keyscan -T 10 -t ed25519 "$TMATE_HOST" > "$known_hosts"
+          test "$(ssh-keygen -lf "$known_hosts" | awk 'NR == 1 {print $2}')" = "$TMATE_ED25519_FINGERPRINT"
+          if output=$(ssh -F /dev/null -o UserKnownHostsFile="$known_hosts" \
+              -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -o BatchMode=yes \
+              -o PreferredAuthentications=none -T "$SSH_ADDRESS" 2>&1); then
+            echo 'SSH unexpectedly accepted a connection without a private key.' >&2
+            exit 1
+          fi
+          grep -Fq 'Permission denied (publickey' <<< "$output"
