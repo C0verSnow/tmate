@@ -15,4 +15,4 @@ GitHub 托管的 Ubuntu runner 会启动一个 Arch Linux 容器。SSH 会话进
 
 仓库内 `main` 的 PR 会在 GitHub Actions 上安装 Arch 软件包、启动 tmate、检查中继返回的 SSH 地址，并确认未提供私钥的 SSH 连接被拒绝。测试结束后会关闭会话。手动启动时也可以勾选 **只运行自动验证**。
 
-工作流使用 [mxschmitt/action-tmate v3.24](https://github.com/mxschmitt/action-tmate/releases/tag/v3.24)。原来的 [tmate 公共中继已停运](https://github.com/tmate-io/tmate/issues/336)，这里使用 [WarpBuild 的公开中继及其主机指纹](https://github.com/WarpBuilds/action-debugger/blob/v2/action.yml)。Arch 软件包来自 [Arch Linux 官方仓库](https://archlinux.org/packages/extra/x86_64/tmate/)。
+工作流使用上游维护的 [`mxschmitt/action-tmate@v3`](https://github.com/mxschmitt/action-tmate/releases/tag/v3)，随 v3 系列更新。上游没有 `latest` 标签或分支。原来的 [tmate 公共中继已停运](https://github.com/tmate-io/tmate/issues/336)，这里使用 [WarpBuild 的公开中继及其主机指纹](https://github.com/WarpBuilds/action-debugger/blob/v2/action.yml)。Arch 软件包来自 [Arch Linux 官方仓库](https://archlinux.org/packages/extra/x86_64/tmate/)。

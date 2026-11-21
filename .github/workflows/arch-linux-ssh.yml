@@ -41,7 +41,7 @@ jobs:
 
       - name: Debugging with tmate
         id: tmate
-        uses: mxschmitt/action-tmate@v3.24
+        uses: mxschmitt/action-tmate@v3
         with:
           install-dependencies: false
           limit-access-to-actor: true
